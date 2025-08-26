@@ -255,8 +255,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      const { month, year } = req.query;
       const teachers = await storage.getTeachers();
-      const timeEntries = await storage.getTimeEntries();
+      let timeEntries = await storage.getTimeEntries();
+      
+      // Filter by month and year if provided
+      if (month && year) {
+        const monthNum = parseInt(month as string);
+        const yearNum = parseInt(year as string);
+        timeEntries = timeEntries.filter(entry => {
+          const entryDate = new Date(entry.date);
+          return entryDate.getMonth() + 1 === monthNum && entryDate.getFullYear() === yearNum;
+        });
+      }
       
       const exportData = timeEntries
         .filter(entry => entry.checkOutTime) // Only completed entries

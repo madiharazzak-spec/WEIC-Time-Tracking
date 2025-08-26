@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Download, LogOut, Watch, Clock, DollarSign, Edit, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Download, LogOut, Watch, Clock, DollarSign, Edit, Trash2, Calendar } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,8 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [showAddTeacher, setShowAddTeacher] = useState(false);
+  const [exportMonth, setExportMonth] = useState("");
+  const [exportYear, setExportYear] = useState("");
   const { toast } = useToast();
 
   // Fetch teachers
@@ -71,8 +74,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // Export timesheet mutation
   const exportMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("GET", "/api/export/timesheet");
+    mutationFn: async ({ month, year }: { month?: string; year?: string } = {}) => {
+      const params = new URLSearchParams();
+      if (month) params.append('month', month);
+      if (year) params.append('year', year);
+      const queryString = params.toString();
+      const url = queryString ? `/api/export/timesheet?${queryString}` : "/api/export/timesheet";
+      const response = await apiRequest("GET", url);
       return response.json();
     },
     onSuccess: (data) => {
@@ -106,7 +114,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `timesheet-${new Date().toISOString().split('T')[0]}.csv`;
+      
+      // Generate filename based on export filter
+      let filename = 'timesheet';
+      if (exportMonth && exportYear) {
+        const monthName = new Date(2000, parseInt(exportMonth) - 1, 1).toLocaleString('default', { month: 'long' });
+        filename += `-${monthName}-${exportYear}`;
+      } else {
+        filename += `-${new Date().toISOString().split('T')[0]}`;
+      }
+      a.download = `${filename}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
 
@@ -262,6 +279,33 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const handleExport = () => {
+    exportMutation.mutate({ 
+      month: exportMonth || undefined, 
+      year: exportYear || undefined 
+    });
+  };
+
+  // Generate year options (current year and 2 years back)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 3 }, (_, i) => currentYear - i);
+  
+  // Month options
+  const monthOptions = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+
   return (
     <>
       <div className="container mx-auto px-4 py-6">
@@ -278,7 +322,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </Button>
             <Button
               variant="secondary"
-              onClick={() => exportMutation.mutate()}
+              onClick={handleExport}
               disabled={exportMutation.isPending}
               data-testid="button-export"
             >
@@ -296,6 +340,74 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </Button>
           </div>
         </div>
+
+        {/* Export Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Export Options</h3>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExportMonth("");
+                  setExportYear("");
+                }}
+                data-testid="button-clear-filters"
+              >
+                Clear Filters
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Month</label>
+                <Select value={exportMonth} onValueChange={setExportMonth}>
+                  <SelectTrigger data-testid="select-month">
+                    <SelectValue placeholder="All months" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((month) => (
+                      <SelectItem key={month.value} value={month.value} data-testid={`option-month-${month.value}`}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Year</label>
+                <Select value={exportYear} onValueChange={setExportYear}>
+                  <SelectTrigger data-testid="select-year">
+                    <SelectValue placeholder="All years" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((year) => (
+                      <SelectItem key={year} value={year.toString()} data-testid={`option-year-${year}`}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <div className="text-sm text-muted-foreground">
+                  {exportMonth && exportYear ? (
+                    <span>Exporting: {monthOptions.find(m => m.value === exportMonth)?.label} {exportYear}</span>
+                  ) : exportMonth ? (
+                    <span>Exporting: {monthOptions.find(m => m.value === exportMonth)?.label} (All years)</span>
+                  ) : exportYear ? (
+                    <span>Exporting: {exportYear} (All months)</span>
+                  ) : (
+                    <span>Exporting: All data</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
