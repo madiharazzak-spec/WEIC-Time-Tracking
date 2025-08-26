@@ -91,14 +91,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const csvContent = [
         headers.join(','),
         ...data.map((row: any) => [
-          row.teacherName,
+          `"${row.teacherName}"`,
           row.date,
-          new Date(row.checkInTime).toLocaleString(),
-          new Date(row.checkOutTime).toLocaleString(),
-          row.hoursWorked,
-          row.billableHours,
+          `"${new Date(row.checkInTime).toLocaleString()}"`,
+          `"${new Date(row.checkOutTime).toLocaleString()}"`,
+          parseFloat(row.hoursWorked).toFixed(2),
+          parseFloat(row.billableHours).toFixed(2),
           row.hourlyRate,
-          row.pay
+          parseFloat(row.pay).toFixed(2)
         ].join(','))
       ].join('\n');
 
