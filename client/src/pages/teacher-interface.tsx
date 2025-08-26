@@ -127,26 +127,12 @@ export default function TeacherInterface() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    // Compare dates using toDateString to avoid timezone issues
-    const entryDateString = date.toDateString();
-    const todayString = today.toDateString();
-    const yesterdayString = yesterday.toDateString();
-    
-    if (entryDateString === todayString) {
-      return "Today";
-    } else if (entryDateString === yesterdayString) {
-      return "Yesterday";
-    } else {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    }
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   const formatTimer = (checkInTime: Date | string) => {
