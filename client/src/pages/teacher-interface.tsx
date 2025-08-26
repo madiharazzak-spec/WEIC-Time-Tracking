@@ -19,7 +19,15 @@ export default function TeacherInterface() {
 
   // Fetch time entries for selected teacher
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
-    queryKey: ['/api/time-entries', { teacherId: selectedTeacherId }],
+    queryKey: ['/api/time-entries', selectedTeacherId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedTeacherId) {
+        params.append('teacherId', selectedTeacherId);
+      }
+      const response = await apiRequest('GET', `/api/time-entries?${params.toString()}`);
+      return response.json();
+    },
     enabled: !!selectedTeacherId,
   });
 
