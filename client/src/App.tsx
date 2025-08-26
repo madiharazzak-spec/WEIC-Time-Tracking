@@ -20,7 +20,7 @@ function AppContent() {
   });
 
   // Check admin session
-  const { data: adminAuth, refetch: refetchAdminAuth } = useQuery({
+  const { data: adminAuth, refetch: refetchAdminAuth } = useQuery<{ isAdmin: boolean }>({
     queryKey: ['/api/auth/check-admin'],
   });
 
@@ -34,7 +34,7 @@ function AppContent() {
   }, [adminAuth]);
 
   // If no PIN is set up and we have the data, show setup
-  if (pinSetup && !pinSetup.hasPin) {
+  if (pinSetup && !(pinSetup as { hasPin: boolean }).hasPin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <AdminLoginModal

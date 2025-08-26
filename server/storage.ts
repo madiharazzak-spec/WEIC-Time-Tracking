@@ -93,6 +93,7 @@ export class MemStorage implements IStorage {
     const timeEntry: TimeEntry = {
       ...insertTimeEntry,
       id,
+      checkOutTime: insertTimeEntry.checkOutTime || null,
       hoursWorked: null,
       billableHours: null,
       pay: null,
