@@ -280,9 +280,7 @@ export default function TeacherInterface() {
         ) : (
           <div className="space-y-3">
             {recentEntries.map((entry, index) => {
-              const teacher = teachers.find(t => t.id === entry.teacherId);
-              const pay = entry.pay ? parseFloat(entry.pay) : 0;
-              const hours = entry.billableHours ? parseFloat(entry.billableHours) : 0;
+              const hours = entry.hoursWorked ? parseFloat(entry.hoursWorked) : 0;
               
               return (
                 <div
@@ -300,10 +298,7 @@ export default function TeacherInterface() {
                   </div>
                   <div className="text-right">
                     <div className="font-medium" data-testid={`text-entry-hours-${index}`}>
-                      {formatHours(hours)}
-                    </div>
-                    <div className="text-sm text-muted-foreground" data-testid={`text-entry-pay-${index}`}>
-                      ${pay.toFixed(2)}
+                      {formatHours(hours)} hrs
                     </div>
                   </div>
                 </div>
