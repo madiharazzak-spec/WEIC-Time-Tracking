@@ -101,8 +101,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         ...data.map((row: any) => [
           `"${row.teacherName}"`,
           row.date,
-          `"${new Date(row.checkInTime).toLocaleString()}"`,
-          `"${new Date(row.checkOutTime).toLocaleString()}"`,
+          `"${new Date(row.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}"`,
+          `"${new Date(row.checkOutTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}"`,
           parseFloat(row.hoursWorked).toFixed(2),
           parseFloat(row.billableHours).toFixed(2),
           row.hourlyRate,
@@ -533,14 +533,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         </td>
                         <td className="p-4">
                           <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-primary hover:bg-primary/10"
-                              data-testid={`button-edit-${index}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
