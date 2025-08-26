@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogIn, LogOut, Info } from "lucide-react";
+import { LogIn, LogOut, Info, Timer } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import type { Teacher, TimeEntry } from "@shared/schema";
 
 export default function TeacherInterface() {
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
+  const [currentTime, setCurrentTime] = useState(new Date());
   const { toast } = useToast();
 
   // Fetch teachers
@@ -33,6 +34,15 @@ export default function TeacherInterface() {
 
   // Get selected teacher
   const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
+
+  // Update timer every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Check-in mutation
   const checkInMutation = useMutation({
@@ -121,9 +131,14 @@ export default function TeacherInterface() {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    if (date.toDateString() === today.toDateString()) {
+    // Compare dates using toDateString to avoid timezone issues
+    const entryDateString = date.toDateString();
+    const todayString = today.toDateString();
+    const yesterdayString = yesterday.toDateString();
+    
+    if (entryDateString === todayString) {
       return "Today";
-    } else if (date.toDateString() === yesterday.toDateString()) {
+    } else if (entryDateString === yesterdayString) {
       return "Yesterday";
     } else {
       return date.toLocaleDateString('en-US', { 
@@ -132,6 +147,17 @@ export default function TeacherInterface() {
         day: 'numeric' 
       });
     }
+  };
+
+  const formatTimer = (checkInTime: Date | string) => {
+    const start = new Date(checkInTime);
+    const elapsed = currentTime.getTime() - start.getTime();
+    
+    const hours = Math.floor(elapsed / (1000 * 60 * 60));
+    const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   if (teachersLoading) {
@@ -228,6 +254,16 @@ export default function TeacherInterface() {
               {formatHours(todayHours)}
             </span>
           </div>
+          
+          {selectedTeacher?.isCheckedIn && selectedTeacher?.currentCheckInTime && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Current Session:</span>
+              <span className="font-mono text-primary" data-testid="text-timer">
+                <Timer className="inline-block mr-1 h-4 w-4" />
+                {formatTimer(selectedTeacher.currentCheckInTime)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
