@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday School Time Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                }
+            }
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222 84% 5%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222 84% 5%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222 84% 5%);
+            --primary: hsl(214 88% 40%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(158 66% 36%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215 25% 27%);
+            --accent: hsl(20 91% 48%);
+            --accent-foreground: hsl(210 40% 98%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214 32% 91%);
+            --input: hsl(214 32% 91%);
+            --ring: hsl(214 88% 40%);
+            --radius: 12px;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-checked-in { background-color: #10b981; }
+        .status-checked-out { background-color: #6b7280; }
+        
+        .time-display {
+            font-variant-numeric: tabular-nums;
+            font-family: 'Inter', monospace;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-stack > * {
+                width: 100% !important;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen">
+    <!-- @COMPONENT: Header -->
+    <header class="bg-card border-b border-border shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-church text-primary text-2xl mr-3"></i>
+                    <h1 class="text-xl font-semibold text-foreground">Sunday School Time Tracker</h1>
+                </div>
+                <div class="text-sm text-muted-foreground">
+                    <span data-bind="currentDate">Today: December 15, 2024</span>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- @COMPONENT: QuickActions -->
+        <div class="mb-8">
+            <div class="flex flex-wrap gap-4 mobile-stack">
+                <button 
+                    data-event="click:openAddTeacherModal" 
+                    class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm">
+                    <i class="fas fa-user-plus"></i>
+                    Add New Teacher
+                </button>
+                <button 
+                    data-event="click:exportToGoogleSheets"
+                    data-implementation="Should format and export timesheet data to Google Sheets"
+                    class="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm">
+                    <i class="fas fa-file-export"></i>
+                    Export to Google Sheets
+                </button>
+                <button 
+                    data-event="click:viewTimesheetReport"
+                    class="bg-accent hover:bg-accent/90 text-accent-foreground px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm">
+                    <i class="fas fa-chart-bar"></i>
+                    View Reports
+                </button>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: QuickActions -->
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- @COMPONENT: CheckInOutPanel -->
+            <div class="lg:col-span-2">
+                <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <h2 class="text-lg font-semibold text-foreground mb-6 flex items-center">
+                        <i class="fas fa-clock text-primary mr-2"></i>
+                        Check In / Check Out
+                    </h2>
+                    
+                    <!-- Teacher Selection -->
+                    <div class="mb-6">
+                        <label for="teacher-select" class="block text-sm font-medium text-foreground mb-2">
+                            Select Teacher
+                        </label>
+                        <select 
+                            id="teacher-select" 
+                            data-bind="selectedTeacher"
+                            class="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent">
+                            <option value="" data-mock="true">Choose a teacher...</option>
+                            <option value="sarah-johnson" data-mock="true">Sarah Johnson</option>
+                            <option value="michael-davis" data-mock="true">Michael Davis</option>
+                            <option value="emily-brown" data-mock="true">Emily Brown</option>
+                            <option value="david-wilson" data-mock="true">David Wilson</option>
+                            <option value="lisa-anderson" data-mock="true">Lisa Anderson</option>
+                        </select>
+                    </div>
+
+                    <!-- Current Time Display -->
+                    <div class="bg-muted rounded-lg p-4 mb-6 text-center">
+                        <div class="text-3xl font-bold text-foreground time-display" data-bind="currentTime">2:45:32 PM</div>
+                        <div class="text-sm text-muted-foreground mt-1">Current Time</div>
+                    </div>
+
+                    <!-- Check In/Out Buttons -->
+                    <div class="flex gap-4 mobile-stack">
+                        <button 
+                            data-event="click:handleCheckIn"
+                            data-implementation="Should record check-in time and start time tracking"
+                            class="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground py-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Check In
+                        </button>
+                        <button 
+                            data-event="click:handleCheckOut"
+                            data-implementation="Should record check-out time and calculate total hours"
+                            class="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground py-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Check Out
+                        </button>
+                    </div>
+
+                    <!-- Selected Teacher Info -->
+                    <div class="mt-6 p-4 bg-muted/50 rounded-lg" data-bind="selectedTeacherInfo" style="display: none;">
+                        <h3 class="font-medium text-foreground mb-2">Teacher Information</h3>
+                        <div class="text-sm text-muted-foreground space-y-1">
+                            <div>Rate: <span data-bind="teacher.hourlyRate" class="font-medium">$25.00/hour</span></div>
+                            <div>Max Hours: <span data-bind="teacher.maxHours" class="font-medium">8 hours/day</span></div>
+                            <div>Status: <span data-bind="teacher.status" class="font-medium">Checked Out</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: CheckInOutPanel -->
+
+            <!-- @COMPONENT: TodayActivity -->
+            <div>
+                <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <h2 class="text-lg font-semibold text-foreground mb-4 flex items-center">
+                        <i class="fas fa-calendar-day text-primary mr-2"></i>
+                        Today's Activity
+                    </h2>
+                    
+                    <!-- @MAP: todayActivities.map(activity => ( -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg" data-mock="true">
+                            <div class="flex items-center">
+                                <span class="status-indicator status-checked-in"></span>
+                                <span class="font-medium text-foreground" data-bind="activity.teacherName">Sarah Johnson</span>
+                            </div>
+                            <div class="text-sm text-muted-foreground">
+                                <div data-bind="activity.checkInTime">9:15 AM</div>
+                                <div class="text-xs">Active: 5h 30m</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg" data-mock="true">
+                            <div class="flex items-center">
+                                <span class="status-indicator status-checked-out"></span>
+                                <span class="font-medium text-foreground" data-bind="activity.teacherName">Michael Davis</span>
+                            </div>
+                            <div class="text-sm text-muted-foreground">
+                                <div data-bind="activity.totalHours">7h 45m</div>
+                                <div class="text-xs">Completed</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg" data-mock="true">
+                            <div class="flex items-center">
+                                <span class="status-indicator status-checked-in"></span>
+                                <span class="font-medium text-foreground" data-bind="activity.teacherName">Emily Brown</span>
+                            </div>
+                            <div class="text-sm text-muted-foreground">
+                                <div data-bind="activity.checkInTime">1:30 PM</div>
+                                <div class="text-xs">Active: 1h 15m</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+
+                    <div class="mt-4 p-3 bg-primary/5 rounded-lg">
+                        <div class="text-sm font-medium text-primary">Today's Summary</div>
+                        <div class="text-xs text-muted-foreground mt-1">
+                            Total Active: 2 teachers | Total Hours: 14h 30m
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: TodayActivity -->
+        </div>
+
+        <!-- @COMPONENT: TeachersManagement -->
+        <div class="mt-8">
+            <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                <h2 class="text-lg font-semibold text-foreground mb-6 flex items-center">
+                    <i class="fas fa-users text-primary mr-2"></i>
+                    Teachers Management
+                </h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-border">
+                                <th class="text-left py-3 px-4 font-medium text-foreground">Teacher</th>
+                                <th class="text-left py-3 px-4 font-medium text-foreground">Hourly Rate</th>
+                                <th class="text-left py-3 px-4 font-medium text-foreground">Max Hours/Day</th>
+                                <th class="text-left py-3 px-4 font-medium text-foreground">Status</th>
+                                <th class="text-left py-3 px-4 font-medium text-foreground">Today's Hours</th>
+                                <th class="text-left py-3 px-4 font-medium text-foreground">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- @MAP: teachers.map(teacher => ( -->
+                            <tr class="border-b border-border/50" data-mock="true">
+                                <td class="py-3 px-4">
+                                    <div class="font-medium text-foreground" data-bind="teacher.name">Sarah Johnson</div>
+                                    <div class="text-xs text-muted-foreground" data-bind="teacher.email">sarah.j@email.com</div>
+                                </td>
+                                <td class="py-3 px-4 text-foreground" data-bind="teacher.hourlyRate">$25.00</td>
+                                <td class="py-3 px-4 text-foreground" data-bind="teacher.maxHours">8</td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary" data-bind="teacher.status">
+                                        <span class="status-indicator status-checked-in mr-1"></span>
+                                        Active
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 font-mono text-sm" data-bind="teacher.todayHours">5.5</td>
+                                <td class="py-3 px-4">
+                                    <div class="flex gap-2">
+                                        <button 
+                                            data-event="click:editTeacher"
+                                            class="text-primary hover:text-primary/80 text-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button 
+                                            data-event="click:deleteTeacher"
+                                            class="text-destructive hover:text-destructive/80 text-sm">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr class="border-b border-border/50" data-mock="true">
+                                <td class="py-3 px-4">
+                                    <div class="font-medium text-foreground" data-bind="teacher.name">Michael Davis</div>
+                                    <div class="text-xs text-muted-foreground" data-bind="teacher.email">michael.d@email.com</div>
+                                </td>
+                                <td class="py-3 px-4 text-foreground" data-bind="teacher.hourlyRate">$30.00</td>
+                                <td class="py-3 px-4 text-foreground" data-bind="teacher.maxHours">6</td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground" data-bind="teacher.status">
+                                        <span class="status-indicator status-checked-out mr-1"></span>
+                                        Checked Out
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 font-mono text-sm" data-bind="teacher.todayHours">6.0</td>
+                                <td class="py-3 px-4">
+                                    <div class="flex gap-2">
+                                        <button 
+                                            data-event="click:editTeacher"
+                                            class="text-primary hover:text-primary/80 text-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button 
+                                            data-event="click:deleteTeacher"
+                                            class="text-destructive hover:text-destructive/80 text-sm">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-border/50" data-mock="true">
+                                <td class="py-3 px-4">
+                                    <div class="font-medium text-foreground" data-bind="teacher.name">Emily Brown</div>
+                                    <div class="text-xs text-muted-foreground" data-bind="teacher.email">emily.b@email.com</div>
+                                </td>
+                                <td class="py-3 px-4 text-foreground" data-bind="teacher.hourlyRate">$22.00</td>
+                                <td class="py-3 px-4 text-foreground" data-bind="teacher.maxHours">7</td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary" data-bind="teacher.status">
+                                        <span class="status-indicator status-checked-in mr-1"></span>
+                                        Active
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 font-mono text-sm" data-bind="teacher.todayHours">1.25</td>
+                                <td class="py-3 px-4">
+                                    <div class="flex gap-2">
+                                        <button 
+                                            data-event="click:editTeacher"
+                                            class="text-primary hover:text-primary/80 text-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button 
+                                            data-event="click:deleteTeacher"
+                                            class="text-destructive hover:text-destructive/80 text-sm">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- @END_MAP )) -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: TeachersManagement -->
+
+        <!-- @COMPONENT: TimesheetPreview -->
+        <div class="mt-8">
+            <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-semibold text-foreground flex items-center">
+                        <i class="fas fa-file-alt text-primary mr-2"></i>
+                        Timesheet Preview
+                    </h2>
+                    <div class="flex gap-2">
+                        <select class="px-3 py-1 border border-input bg-background rounded text-sm">
+                            <option data-mock="true">This Week</option>
+                            <option data-mock="true">Last Week</option>
+                            <option data-mock="true">This Month</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-border bg-muted/20">
+                                <th class="text-left py-2 px-3 font-medium text-foreground">Name</th>
+                                <th class="text-left py-2 px-3 font-medium text-foreground">Date</th>
+                                <th class="text-left py-2 px-3 font-medium text-foreground">Check In</th>
+                                <th class="text-left py-2 px-3 font-medium text-foreground">Check Out</th>
+                                <th class="text-left py-2 px-3 font-medium text-foreground">Hours Worked</th>
+                                <th class="text-left py-2 px-3 font-medium text-foreground">Billable Hours</th>
+                                <th class="text-left py-2 px-3 font-medium text-foreground">Pay</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- @MAP: timesheetEntries.map(entry => ( -->
+                            <tr class="border-b border-border/30" data-mock="true">
+                                <td class="py-2 px-3 font-medium" data-bind="entry.teacherName">Sarah Johnson</td>
+                                <td class="py-2 px-3" data-bind="entry.date">2024-12-15</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.checkInTime">09:15:00</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.checkOutTime">14:45:00</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.hoursWorked">5.50</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.billableHours">5.50</td>
+                                <td class="py-2 px-3 font-mono font-medium" data-bind="entry.pay">$137.50</td>
+                            </tr>
+                            
+                            <tr class="border-b border-border/30" data-mock="true">
+                                <td class="py-2 px-3 font-medium" data-bind="entry.teacherName">Michael Davis</td>
+                                <td class="py-2 px-3" data-bind="entry.date">2024-12-15</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.checkInTime">08:00:00</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.checkOutTime">16:30:00</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.hoursWorked">8.50</td>
+                                <td class="py-2 px-3 font-mono text-accent font-medium" data-bind="entry.billableHours">6.00</td>
+                                <td class="py-2 px-3 font-mono font-medium" data-bind="entry.pay">$180.00</td>
+                            </tr>
+                            
+                            <tr class="border-b border-border/30" data-mock="true">
+                                <td class="py-2 px-3 font-medium" data-bind="entry.teacherName">Emily Brown</td>
+                                <td class="py-2 px-3" data-bind="entry.date">2024-12-15</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.checkInTime">13:30:00</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.checkOutTime">-</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.hoursWorked">1.25</td>
+                                <td class="py-2 px-3 font-mono" data-bind="entry.billableHours">1.25</td>
+                                <td class="py-2 px-3 font-mono font-medium" data-bind="entry.pay">$27.50</td>
+                            </tr>
+                            <!-- @END_MAP )) -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-t border-border bg-muted/10">
+                                <td colspan="4" class="py-2 px-3 font-medium text-right">Totals:</td>
+                                <td class="py-2 px-3 font-mono font-bold" data-bind="totals.hoursWorked">15.25</td>
+                                <td class="py-2 px-3 font-mono font-bold" data-bind="totals.billableHours">12.75</td>
+                                <td class="py-2 px-3 font-mono font-bold" data-bind="totals.totalPay">$345.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="mt-4 p-3 bg-accent/5 rounded-lg border border-accent/20">
+                    <p class="text-sm text-accent-foreground">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Note:</strong> Billable hours are capped at each teacher's maximum daily limit. Hours exceeding the limit are highlighted in orange.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: TimesheetPreview -->
+    </div>
+
+    <!-- @COMPONENT: AddTeacherModal -->
+    <!-- @STATE: isModalOpen:boolean = false -->
+    <div id="add-teacher-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" style="display: none;">
+        <div class="bg-card rounded-xl shadow-xl border border-border w-full max-w-md">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-foreground">Add New Teacher</h3>
+                    <button 
+                        data-event="click:closeModal"
+                        class="text-muted-foreground hover:text-foreground transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form data-event="submit:handleAddTeacher" class="space-y-4">
+                    <div>
+                        <label for="teacher-name" class="block text-sm font-medium text-foreground mb-1">
+                            Full Name *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="teacher-name" 
+                            required
+                            placeholder="Enter teacher's full name"
+                            class="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="teacher-email" class="block text-sm font-medium text-foreground mb-1">
+                            Email Address
+                        </label>
+                        <input 
+                            type="email" 
+                            id="teacher-email" 
+                            placeholder="teacher@email.com"
+                            class="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="hourly-rate" class="block text-sm font-medium text-foreground mb-1">
+                                Hourly Rate *
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-muted-foreground">$</span>
+                                <input 
+                                    type="number" 
+                                    id="hourly-rate" 
+                                    required
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="25.00"
+                                    class="w-full pl-8 pr-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="max-hours" class="block text-sm font-medium text-foreground mb-1">
+                                Max Hours/Day *
+                            </label>
+                            <input 
+                                type="number" 
+                                id="max-hours" 
+                                required
+                                min="1"
+                                max="24"
+                                placeholder="8"
+                                class="w-full px-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3 pt-4">
+                        <button 
+                            type="button"
+                            data-event="click:closeModal"
+                            class="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit"
+                            data-implementation="Should validate form and add teacher to database"
+                            class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors">
+                            Add Teacher
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: AddTeacherModal -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            // Mock current time update
+            function updateCurrentTime() {
+                const timeElement = document.querySelector('[data-bind="currentTime"]');
+                if (timeElement) {
+                    const now = new Date();
+                    timeElement.textContent = now.toLocaleTimeString();
+                }
+            }
+
+            // Update time every second
+            setInterval(updateCurrentTime, 1000);
+            updateCurrentTime();
+
+            // Modal functionality
+            const modal = document.getElementById('add-teacher-modal');
+            const addTeacherBtn = document.querySelector('[data-event="click:openAddTeacherModal"]');
+            const closeModalBtns = document.querySelectorAll('[data-event="click:closeModal"]');
+
+            if (addTeacherBtn) {
+                addTeacherBtn.addEventListener('click', () => {
+                    if (modal) modal.style.display = 'flex';
+                });
+            }
+
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (modal) modal.style.display = 'none';
+                });
+            });
+
+            // Close modal on outside click
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            }
+
+            // Teacher selection handling
+            const teacherSelect = document.getElementById('teacher-select');
+            const teacherInfo = document.querySelector('[data-bind="selectedTeacherInfo"]');
+
+            if (teacherSelect && teacherInfo) {
+                teacherSelect.addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        teacherInfo.style.display = 'block';
+                        // TODO: Load actual teacher data and update display
+                    } else {
+                        teacherInfo.style.display = 'none';
+                    }
+                });
+            }
+
+            // Basic form validation
+            const addTeacherForm = document.querySelector('[data-event="submit:handleAddTeacher"]');
+            if (addTeacherForm) {
+                addTeacherForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    // TODO: Implement actual form submission logic
+                    console.log('Form submitted - implement actual logic');
+                });
+            }
+
+            // Button click handlers with basic feedback
+            document.querySelectorAll('button[data-event]').forEach(button => {
+                button.addEventListener('click', () => {
+                    // Add visual feedback
+                    button.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        button.style.transform = 'scale(1)';
+                    }, 100);
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

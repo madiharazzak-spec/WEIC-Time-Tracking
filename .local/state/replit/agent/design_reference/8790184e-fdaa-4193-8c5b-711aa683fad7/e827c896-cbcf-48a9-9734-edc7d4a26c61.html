@@ -1,0 +1,583 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEIC Time Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                    chart: {
+                        "1": "var(--chart-1)",
+                        "2": "var(--chart-2)",
+                        "3": "var(--chart-3)",
+                        "4": "var(--chart-4)",
+                        "5": "var(--chart-5)",
+                    }
+                },
+                fontFamily: {
+                    sans: ["var(--font-sans)"],
+                }
+            },
+        }
+    };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --radius: 8px;
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222 84% 4.9%);
+            --primary: hsl(221 83% 53%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(215 27% 32%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(215 27% 92%);
+            --muted-foreground: hsl(215 13% 65%);
+            --accent: hsl(215 27% 92%);
+            --accent-foreground: hsl(222 84% 4.9%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214 32% 91%);
+            --input: hsl(214 32% 91%);
+            --ring: hsl(221 83% 53%);
+            --chart-1: hsl(12 76% 61%);
+            --chart-2: hsl(173 58% 39%);
+            --chart-3: hsl(197 37% 24%);
+            --chart-4: hsl(43 74% 66%);
+            --chart-5: hsl(27 87% 67%);
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+        }
+        
+        .view {
+            display: none;
+        }
+        
+        .view.active {
+            display: block;
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground font-sans">
+    <!-- @COMPONENT: AppContainer -->
+    <div class="min-h-screen">
+        <!-- Header -->
+        <!-- @COMPONENT: Header -->
+        <header class="bg-primary text-primary-foreground shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-clock text-2xl"></i>
+                        <h1 class="text-xl font-bold">WEIC Time Tracker</h1>
+                    </div>
+                    <button id="adminBtn" class="bg-primary-foreground text-primary px-4 py-2 rounded-md text-sm font-medium hover:bg-accent transition-colors" data-event="click:showAdminLogin">
+                        <i class="fas fa-cog mr-2"></i>Admin
+                    </button>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- Teacher Check-in/out View -->
+        <!-- @COMPONENT: TeacherInterface -->
+        <div id="teacherView" class="view active">
+            <div class="container mx-auto px-4 py-6 max-w-md">
+                <div class="bg-card rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-center mb-6">Welcome, Teachers!</h2>
+                    
+                    <!-- Teacher Selection -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Select Your Name</label>
+                        <select class="w-full p-3 border border-border rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" data-bind="selectedTeacher">
+                            <option value="">Choose your name...</option>
+                            <option value="sarah" data-mock="true">Sarah Johnson</option>
+                            <option value="michael" data-mock="true">Michael Davis</option>
+                            <option value="emma" data-mock="true">Emma Wilson</option>
+                            <option value="david" data-mock="true">David Brown</option>
+                        </select>
+                    </div>
+
+                    <!-- Check-in/out Buttons -->
+                    <div class="space-y-4">
+                        <button class="w-full bg-primary text-primary-foreground py-4 rounded-lg text-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50" data-event="click:checkIn" data-implementation="Should record check-in time and start timer">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Check In
+                        </button>
+                        <button class="w-full bg-secondary text-secondary-foreground py-4 rounded-lg text-lg font-semibold hover:bg-secondary/90 transition-colors disabled:opacity-50" data-event="click:checkOut" data-implementation="Should record check-out time and calculate hours">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Check Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Current Status Card -->
+                <div class="bg-card rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Your Current Status</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">Status:</span>
+                            <span class="flex items-center text-destructive" data-bind="status">
+                                <span class="w-2 h-2 bg-destructive rounded-full mr-2"></span>
+                                Not Checked In
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">Check-in Time:</span>
+                            <span data-bind="checkInTime" data-mock="true">--:--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-muted-foreground">Hours Today:</span>
+                            <span data-bind="hoursToday" data-mock="true">0:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-card rounded-lg shadow-lg p-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-4">Your Recent Activity</h3>
+                    <div class="space-y-3">
+                        <!-- @MAP: userTimeEntries.map(entry => ( -->
+                        <div class="flex justify-between items-center py-2 border-b border-border last:border-b-0" data-mock="true">
+                            <div>
+                                <div class="font-medium">Yesterday</div>
+                                <div class="text-sm text-muted-foreground">9:00 AM - 3:30 PM</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-medium">6.5 hours</div>
+                                <div class="text-sm text-muted-foreground">$162.50</div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                        <div class="text-center text-muted-foreground text-sm mt-4">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Only your time entries are shown
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: TeacherInterface -->
+
+        <!-- Admin PIN Entry View -->
+        <!-- @COMPONENT: AdminLogin -->
+        <div id="adminLoginView" class="view">
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div class="bg-card rounded-lg shadow-xl p-6 w-full max-w-sm">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-lock text-4xl text-primary mb-4"></i>
+                        <h2 class="text-xl font-bold">Admin Access</h2>
+                        <p class="text-muted-foreground">Enter your PIN to continue</p>
+                    </div>
+                    
+                    <form class="space-y-4">
+                        <div>
+                            <input type="password" placeholder="Enter PIN" class="w-full p-3 border border-border rounded-md text-center text-lg tracking-widest focus:ring-2 focus:ring-ring focus:border-transparent" maxlength="6" data-implementation="Should mask PIN input">
+                        </div>
+                        <div class="flex space-x-3">
+                            <button type="button" class="flex-1 bg-secondary text-secondary-foreground py-3 rounded-md font-medium hover:bg-secondary/90 transition-colors" data-event="click:closeAdminLogin">Cancel</button>
+                            <button type="submit" class="flex-1 bg-primary text-primary-foreground py-3 rounded-md font-medium hover:bg-primary/90 transition-colors" data-event="submit:validatePin">Login</button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-6 pt-4 border-t border-border">
+                        <button class="w-full text-destructive text-sm hover:underline" data-event="click:showPinReset">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            Forgot PIN? Reset Application
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AdminLogin -->
+
+        <!-- Admin Dashboard View -->
+        <!-- @COMPONENT: AdminDashboard -->
+        <div id="adminView" class="view">
+            <div class="container mx-auto px-4 py-6">
+                <!-- Dashboard Header -->
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Admin Dashboard</h2>
+                    <div class="flex space-x-3">
+                        <button class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors" data-event="click:showAddTeacher">
+                            <i class="fas fa-plus mr-2"></i>Add Teacher
+                        </button>
+                        <button class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 transition-colors" data-event="click:exportToSheets">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                        <button class="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 transition-colors" data-event="click:logoutAdmin">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-card rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-muted-foreground text-sm">Currently Checked In</p>
+                                <p class="text-2xl font-bold text-primary" data-bind="checkedInCount" data-mock="true">3</p>
+                            </div>
+                            <i class="fas fa-user-clock text-3xl text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="bg-card rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-muted-foreground text-sm">Today's Total Hours</p>
+                                <p class="text-2xl font-bold text-secondary" data-bind="totalHoursToday" data-mock="true">24.5</p>
+                            </div>
+                            <i class="fas fa-clock text-3xl text-secondary"></i>
+                        </div>
+                    </div>
+                    <div class="bg-card rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-muted-foreground text-sm">Today's Payroll</p>
+                                <p class="text-2xl font-bold text-chart-1" data-bind="totalPayToday" data-mock="true">$612.50</p>
+                            </div>
+                            <i class="fas fa-dollar-sign text-3xl text-chart-1"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teachers Management -->
+                <div class="bg-card rounded-lg shadow-lg overflow-hidden">
+                    <div class="p-6 border-b border-border">
+                        <h3 class="text-lg font-semibold">Teachers & Time Tracking</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-muted">
+                                <tr>
+                                    <th class="text-left p-4 font-medium">Teacher</th>
+                                    <th class="text-left p-4 font-medium">Status</th>
+                                    <th class="text-left p-4 font-medium">Today's Hours</th>
+                                    <th class="text-left p-4 font-medium">Billable Hours</th>
+                                    <th class="text-left p-4 font-medium">Pay</th>
+                                    <th class="text-left p-4 font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                <!-- @MAP: teachers.map(teacher => ( -->
+                                <tr data-mock="true">
+                                    <td class="p-4">
+                                        <div>
+                                            <div class="font-medium" data-bind="teacher.name">Sarah Johnson</div>
+                                            <div class="text-sm text-muted-foreground">$25/hr • Max 8hrs</div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="flex items-center text-chart-2">
+                                            <span class="w-2 h-2 bg-chart-2 rounded-full mr-2 pulse-dot"></span>
+                                            Checked In
+                                        </span>
+                                        <div class="text-xs text-muted-foreground">Since 9:15 AM</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium" data-bind="teacher.hoursToday">6.25</div>
+                                        <div class="text-xs text-muted-foreground">9:15 AM - 3:30 PM</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium" data-bind="teacher.billableHours">6.25</div>
+                                        <div class="text-xs text-muted-foreground">Under limit</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium" data-bind="teacher.pay">$156.25</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex space-x-2">
+                                            <button class="text-primary hover:bg-primary/10 p-2 rounded" data-event="click:editTeacher">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-destructive hover:bg-destructive/10 p-2 rounded" data-event="click:deleteTeacher">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr data-mock="true">
+                                    <td class="p-4">
+                                        <div>
+                                            <div class="font-medium">Michael Davis</div>
+                                            <div class="text-sm text-muted-foreground">$30/hr • Max 6hrs</div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="flex items-center text-muted-foreground">
+                                            <span class="w-2 h-2 bg-muted-foreground rounded-full mr-2"></span>
+                                            Not Checked In
+                                        </span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium">5.5</div>
+                                        <div class="text-xs text-muted-foreground">8:00 AM - 1:30 PM</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium">5.5</div>
+                                        <div class="text-xs text-muted-foreground">Under limit</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium">$165.00</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex space-x-2">
+                                            <button class="text-primary hover:bg-primary/10 p-2 rounded">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-destructive hover:bg-destructive/10 p-2 rounded">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr data-mock="true">
+                                    <td class="p-4">
+                                        <div>
+                                            <div class="font-medium">Emma Wilson</div>
+                                            <div class="text-sm text-muted-foreground">$28/hr • Max 7hrs</div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="flex items-center text-chart-2">
+                                            <span class="w-2 h-2 bg-chart-2 rounded-full mr-2 pulse-dot"></span>
+                                            Checked In
+                                        </span>
+                                        <div class="text-xs text-muted-foreground">Since 10:00 AM</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium">4.0</div>
+                                        <div class="text-xs text-muted-foreground">10:00 AM - 2:00 PM</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium">4.0</div>
+                                        <div class="text-xs text-muted-foreground">Under limit</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-medium">$112.00</div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex space-x-2">
+                                            <button class="text-primary hover:bg-primary/10 p-2 rounded">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-destructive hover:bg-destructive/10 p-2 rounded">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Weekly Summary -->
+                <div class="bg-card rounded-lg shadow-lg p-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-4">Weekly Summary</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-primary" data-bind="weeklyHours" data-mock="true">156.5</div>
+                            <div class="text-sm text-muted-foreground">Total Hours</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-secondary" data-bind="weeklyBillable" data-mock="true">148.0</div>
+                            <div class="text-sm text-muted-foreground">Billable Hours</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-chart-1" data-bind="weeklyPay" data-mock="true">$4,124.00</div>
+                            <div class="text-sm text-muted-foreground">Total Pay</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-chart-2" data-bind="avgDaily" data-mock="true">22.4</div>
+                            <div class="text-sm text-muted-foreground">Avg Daily Hours</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AdminDashboard -->
+
+        <!-- Add Teacher Modal -->
+        <!-- @COMPONENT: AddTeacherModal -->
+        <div id="addTeacherModal" class="view">
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div class="bg-card rounded-lg shadow-xl p-6 w-full max-w-md">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Add New Teacher</h3>
+                        <button class="text-muted-foreground hover:text-foreground" data-event="click:closeAddTeacher">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <form class="space-y-4" data-implementation="Should validate form and save teacher data">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Full Name</label>
+                            <input type="text" placeholder="Enter teacher's full name" class="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-ring focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Hourly Rate ($)</label>
+                            <input type="number" placeholder="25.00" step="0.01" min="0" class="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-ring focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Max Billable Hours per Day</label>
+                            <input type="number" placeholder="8" step="0.5" min="0" max="24" class="w-full p-3 border border-border rounded-md focus:ring-2 focus:ring-ring focus:border-transparent" required>
+                        </div>
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" class="flex-1 bg-secondary text-secondary-foreground py-3 rounded-md font-medium hover:bg-secondary/90 transition-colors" data-event="click:closeAddTeacher">Cancel</button>
+                            <button type="submit" class="flex-1 bg-primary text-primary-foreground py-3 rounded-md font-medium hover:bg-primary/90 transition-colors" data-event="submit:addTeacher">Add Teacher</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AddTeacherModal -->
+
+        <!-- PIN Reset Confirmation -->
+        <!-- @COMPONENT: PinResetModal -->
+        <div id="pinResetModal" class="view">
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div class="bg-card rounded-lg shadow-xl p-6 w-full max-w-md">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-exclamation-triangle text-4xl text-destructive mb-4"></i>
+                        <h3 class="text-xl font-bold text-destructive">Reset Application</h3>
+                        <p class="text-muted-foreground mt-2">This will permanently delete all data including teachers, time entries, and settings.</p>
+                    </div>
+                    
+                    <div class="bg-destructive/10 border border-destructive/20 rounded-md p-4 mb-6">
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-exclamation-circle text-destructive mt-0.5"></i>
+                            <div class="text-sm">
+                                <p class="font-medium text-destructive">Warning: This action cannot be undone</p>
+                                <ul class="mt-2 space-y-1 text-destructive/80">
+                                    <li>• All teacher records will be deleted</li>
+                                    <li>• All time tracking data will be lost</li>
+                                    <li>• You will need to set up a new PIN</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button class="flex-1 bg-secondary text-secondary-foreground py-3 rounded-md font-medium hover:bg-secondary/90 transition-colors" data-event="click:closePinReset">Cancel</button>
+                        <button class="flex-1 bg-destructive text-destructive-foreground py-3 rounded-md font-medium hover:bg-destructive/90 transition-colors" data-event="click:confirmReset" data-implementation="Should reset all application data and redirect to PIN setup">
+                            Reset Everything
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: PinResetModal -->
+    </div>
+    <!-- @END_COMPONENT: AppContainer -->
+
+    <script>
+        (function() {
+            // TODO: Implement business logic, API calls, and state management
+            
+            // View management
+            function showView(viewId) {
+                document.querySelectorAll('.view').forEach(view => {
+                    view.classList.remove('active');
+                });
+                document.getElementById(viewId).classList.add('active');
+            }
+            
+            // Event handlers for demonstration
+            document.getElementById('adminBtn')?.addEventListener('click', () => {
+                showView('adminLoginView');
+            });
+            
+            // Close modal handlers
+            document.addEventListener('click', (e) => {
+                if (e.target.dataset.event?.includes('closeAdminLogin') || 
+                    e.target.dataset.event?.includes('closeAddTeacher') ||
+                    e.target.dataset.event?.includes('closePinReset')) {
+                    showView('teacherView');
+                }
+                
+                if (e.target.dataset.event?.includes('showAddTeacher')) {
+                    showView('addTeacherModal');
+                }
+                
+                if (e.target.dataset.event?.includes('showPinReset')) {
+                    showView('pinResetModal');
+                }
+                
+                if (e.target.dataset.event?.includes('logoutAdmin')) {
+                    showView('teacherView');
+                }
+                
+                if (e.target.dataset.event?.includes('validatePin')) {
+                    e.preventDefault();
+                    // TODO: Validate PIN and show admin dashboard
+                    showView('adminView');
+                }
+            });
+            
+            // Initialize with teacher view
+            showView('teacherView');
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday School Time Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    success: {
+                        DEFAULT: "var(--success)",
+                        foreground: "var(--success-foreground)",
+                    },
+                    warning: {
+                        DEFAULT: "var(--warning)",
+                        foreground: "var(--warning-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                }
+            },
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(210 90% 45%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222.2 47.4% 11.2%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(210 40% 96%);
+            --accent-foreground: hsl(222.2 47.4% 11.2%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --success: hsl(142.1 76.2% 36.3%);
+            --success-foreground: hsl(355.7 100% 97.3%);
+            --warning: hsl(32.6 94.6% 43.7%);
+            --warning-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(221.2 83.2% 53.3%);
+            --radius: 8px;
+        }
+        
+        .font-inter {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        .status-badge {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-background text-foreground font-inter min-h-screen">
+    <!-- Navigation Header -->
+    <!-- @COMPONENT: NavigationHeader [userRole: 'teacher'|'admin', currentUser: string] -->
+    <header class="bg-card shadow-sm border-b border-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-church text-primary text-2xl"></i>
+                    <h1 class="text-xl font-semibold text-foreground">Sunday School Time Tracker</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- @STATE: userRole:string = 'teacher' -->
+                    <div class="flex bg-muted rounded-lg p-1">
+                        <button id="teacherView" class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground transition-colors">
+                            Teacher
+                        </button>
+                        <button id="adminView" class="px-4 py-2 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground transition-colors">
+                            Admin
+                        </button>
+                    </div>
+                    <span class="text-sm text-muted-foreground" data-bind="currentUser.name">Sarah Johnson</span>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: NavigationHeader -->
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Teacher Interface -->
+        <!-- @COMPONENT: TeacherInterface [visible when userRole === 'teacher'] -->
+        <div id="teacherInterface" class="space-y-6">
+            <!-- Current Status Card -->
+            <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-semibold text-foreground">Quick Check-In</h2>
+                    <!-- @STATE: currentTime:string, currentDate:string -->
+                    <div class="text-right">
+                        <div class="text-sm text-muted-foreground">Today</div>
+                        <div class="text-lg font-medium" data-bind="currentDate">Sunday, March 10, 2024</div>
+                        <div class="text-sm text-muted-foreground" data-bind="currentTime">2:45 PM</div>
+                    </div>
+                </div>
+
+                <!-- Teacher Selection -->
+                <!-- @COMPONENT: TeacherSelector [teachers: Teacher[], selectedTeacher: string] -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-foreground mb-2">Select Your Name</label>
+                    <select class="w-full px-4 py-3 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground">
+                        <option value="">Choose your name...</option>
+                        <option value="sarah" selected>Sarah Johnson</option>
+                        <option value="michael">Michael Chen</option>
+                        <option value="emily">Emily Rodriguez</option>
+                        <option value="david">David Thompson</option>
+                        <option value="lisa">Lisa Anderson</option>
+                    </select>
+                </div>
+                <!-- @END_COMPONENT: TeacherSelector -->
+
+                <!-- Check-in/Check-out Buttons -->
+                <!-- @STATE: isCheckedIn:boolean = false, checkInTime:string, workingHours:number -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <button data-event="click:handleCheckIn" class="flex items-center justify-center px-6 py-4 bg-success text-success-foreground rounded-lg font-medium hover:bg-success/90 transition-colors">
+                        <i class="fas fa-clock mr-3"></i>
+                        Check In
+                    </button>
+                    <button data-event="click:handleCheckOut" class="flex items-center justify-center px-6 py-4 bg-destructive text-destructive-foreground rounded-lg font-medium hover:bg-destructive/90 transition-colors opacity-50 cursor-not-allowed">
+                        <i class="fas fa-sign-out-alt mr-3"></i>
+                        Check Out
+                    </button>
+                </div>
+
+                <!-- Current Session Info -->
+                <div class="bg-muted rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 bg-warning rounded-full status-badge"></div>
+                            <span class="font-medium">Currently Checked In</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-muted-foreground">Started at</div>
+                            <div class="font-medium" data-bind="checkInTime">1:30 PM</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-border">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">Time worked today:</span>
+                            <span class="font-medium" data-bind="workingHours">1h 15m</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Personal Time History -->
+            <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                <h3 class="text-lg font-semibold text-foreground mb-4">Your Recent Activity</h3>
+                <div class="space-y-3">
+                    <!-- @MAP: userTimeEntries.map(entry => ( -->
+                    <div class="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div>
+                            <div class="font-medium" data-bind="entry.date">March 10, 2024</div>
+                            <div class="text-sm text-muted-foreground">
+                                <span data-bind="entry.checkIn">1:30 PM</span> - 
+                                <span data-bind="entry.checkOut">4:45 PM</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-medium" data-bind="entry.hoursWorked">3.25 hrs</div>
+                            <div class="text-sm text-muted-foreground" data-bind="entry.pay">$65.00</div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                    
+                    <div class="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div>
+                            <div class="font-medium">March 3, 2024</div>
+                            <div class="text-sm text-muted-foreground">2:00 PM - 5:15 PM</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-medium">3.25 hrs</div>
+                            <div class="text-sm text-muted-foreground">$65.00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div>
+                            <div class="font-medium">February 25, 2024</div>
+                            <div class="text-sm text-muted-foreground">1:15 PM - 4:30 PM</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-medium">3.25 hrs</div>
+                            <div class="text-sm text-muted-foreground">$65.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: TeacherInterface -->
+
+        <!-- Admin Interface -->
+        <!-- @COMPONENT: AdminInterface [visible when userRole === 'admin'] -->
+        <div id="adminInterface" class="space-y-6 hidden">
+            
+            <!-- Admin Dashboard Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                <div>
+                    <h2 class="text-3xl font-bold text-foreground">Admin Dashboard</h2>
+                    <p class="text-muted-foreground">Manage teachers and track hours</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button data-event="click:openAddTeacherModal" class="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Add Teacher
+                    </button>
+                    <button data-event="click:exportToGoogleSheets" class="flex items-center px-4 py-2 bg-success text-success-foreground rounded-lg font-medium hover:bg-success/90 transition-colors">
+                        <i class="fas fa-file-export mr-2"></i>
+                        Export to Sheets
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Total Teachers</p>
+                            <p class="text-3xl font-bold text-foreground" data-bind="stats.totalTeachers">5</p>
+                        </div>
+                        <i class="fas fa-users text-primary text-2xl"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Currently Active</p>
+                            <p class="text-3xl font-bold text-warning" data-bind="stats.activeTeachers">2</p>
+                        </div>
+                        <i class="fas fa-clock text-warning text-2xl"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Today's Hours</p>
+                            <p class="text-3xl font-bold text-success" data-bind="stats.todayHours">8.5</p>
+                        </div>
+                        <i class="fas fa-stopwatch text-success text-2xl"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Today's Payroll</p>
+                            <p class="text-3xl font-bold text-foreground" data-bind="stats.todayPayroll">$170</p>
+                        </div>
+                        <i class="fas fa-dollar-sign text-foreground text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Teachers -->
+            <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center">
+                    <i class="fas fa-users-clock mr-2 text-warning"></i>
+                    Currently Checked In
+                </h3>
+                <div class="space-y-3">
+                    <!-- @MAP: activeTeachers.map(teacher => ( -->
+                    <div class="flex items-center justify-between p-4 bg-warning/10 border border-warning/20 rounded-lg">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-3 h-3 bg-warning rounded-full status-badge"></div>
+                            <div>
+                                <div class="font-medium" data-bind="teacher.name">Sarah Johnson</div>
+                                <div class="text-sm text-muted-foreground">
+                                    Started at <span data-bind="teacher.checkInTime">1:30 PM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-medium" data-bind="teacher.currentHours">1h 15m</div>
+                            <div class="text-sm text-muted-foreground">$20/hr</div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                    
+                    <div class="flex items-center justify-between p-4 bg-warning/10 border border-warning/20 rounded-lg">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-3 h-3 bg-warning rounded-full status-badge"></div>
+                            <div>
+                                <div class="font-medium">Michael Chen</div>
+                                <div class="text-sm text-muted-foreground">Started at 2:15 PM</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-medium">30m</div>
+                            <div class="text-sm text-muted-foreground">$18/hr</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Management -->
+            <div class="bg-card rounded-lg shadow-sm border border-border p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-foreground">Teacher Management</h3>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" placeholder="Search teachers..." class="px-3 py-2 bg-background border border-input rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-transparent">
+                        <button class="p-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors">
+                            <i class="fas fa-search text-muted-foreground"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Teachers Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-border">
+                                <th class="text-left py-3 px-2 font-medium text-muted-foreground">Name</th>
+                                <th class="text-left py-3 px-2 font-medium text-muted-foreground">Rate</th>
+                                <th class="text-left py-3 px-2 font-medium text-muted-foreground">Max Hours</th>
+                                <th class="text-left py-3 px-2 font-medium text-muted-foreground">Status</th>
+                                <th class="text-left py-3 px-2 font-medium text-muted-foreground">Today</th>
+                                <th class="text-left py-3 px-2 font-medium text-muted-foreground">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                            <!-- @MAP: teachers.map(teacher => ( -->
+                            <tr class="hover:bg-muted/50">
+                                <td class="py-4 px-2">
+                                    <div class="font-medium" data-bind="teacher.name">Sarah Johnson</div>
+                                </td>
+                                <td class="py-4 px-2 text-muted-foreground" data-bind="teacher.hourlyRate">$20/hr</td>
+                                <td class="py-4 px-2 text-muted-foreground" data-bind="teacher.maxHours">4 hrs</td>
+                                <td class="py-4 px-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning border border-warning/20">
+                                        <div class="w-1.5 h-1.5 bg-warning rounded-full mr-1.5"></div>
+                                        Active
+                                    </span>
+                                </td>
+                                <td class="py-4 px-2">
+                                    <div class="text-sm">
+                                        <div data-bind="teacher.todayHours">1h 15m</div>
+                                        <div class="text-muted-foreground" data-bind="teacher.todayPay">$25.00</div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-2">
+                                    <div class="flex space-x-2">
+                                        <button data-event="click:editTeacher" class="p-2 text-muted-foreground hover:text-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button data-event="click:viewTeacherHistory" class="p-2 text-muted-foreground hover:text-primary">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- @END_MAP )) -->
+                            
+                            <tr class="hover:bg-muted/50">
+                                <td class="py-4 px-2">
+                                    <div class="font-medium">Michael Chen</div>
+                                </td>
+                                <td class="py-4 px-2 text-muted-foreground">$18/hr</td>
+                                <td class="py-4 px-2 text-muted-foreground">5 hrs</td>
+                                <td class="py-4 px-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning border border-warning/20">
+                                        <div class="w-1.5 h-1.5 bg-warning rounded-full mr-1.5"></div>
+                                        Active
+                                    </span>
+                                </td>
+                                <td class="py-4 px-2">
+                                    <div class="text-sm">
+                                        <div>30m</div>
+                                        <div class="text-muted-foreground">$9.00</div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-2">
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 text-muted-foreground hover:text-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="p-2 text-muted-foreground hover:text-primary">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr class="hover:bg-muted/50">
+                                <td class="py-4 px-2">
+                                    <div class="font-medium">Emily Rodriguez</div>
+                                </td>
+                                <td class="py-4 px-2 text-muted-foreground">$22/hr</td>
+                                <td class="py-4 px-2 text-muted-foreground">3 hrs</td>
+                                <td class="py-4 px-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                        Checked Out
+                                    </span>
+                                </td>
+                                <td class="py-4 px-2">
+                                    <div class="text-sm">
+                                        <div>0h</div>
+                                        <div class="text-muted-foreground">$0.00</div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-2">
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 text-muted-foreground hover:text-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="p-2 text-muted-foreground hover:text-primary">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AdminInterface -->
+    </div>
+
+    <!-- Add Teacher Modal -->
+    <!-- @COMPONENT: AddTeacherModal [visible when showAddTeacherModal === true] -->
+    <div id="addTeacherModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-card rounded-lg shadow-xl border border-border p-6 w-full max-w-md mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-foreground">Add New Teacher</h3>
+                <button data-event="click:closeAddTeacherModal" class="p-2 hover:bg-muted rounded-lg transition-colors">
+                    <i class="fas fa-times text-muted-foreground"></i>
+                </button>
+            </div>
+            
+            <form data-event="submit:handleAddTeacher" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-foreground mb-2">Full Name</label>
+                    <input type="text" name="name" required class="w-full px-4 py-3 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground" placeholder="Enter teacher's full name">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-foreground mb-2">Hourly Rate</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-muted-foreground">$</span>
+                        </div>
+                        <input type="number" name="hourlyRate" required step="0.01" min="0" class="w-full pl-8 pr-4 py-3 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground" placeholder="20.00">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-foreground mb-2">Max Billable Hours Per Day</label>
+                    <input type="number" name="maxHours" required step="0.5" min="0.5" max="24" class="w-full px-4 py-3 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-foreground" placeholder="4">
+                </div>
+                
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit" class="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                        Add Teacher
+                    </button>
+                    <button type="button" data-event="click:closeAddTeacherModal" class="flex-1 px-4 py-3 bg-muted text-muted-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: AddTeacherModal -->
+
+    <script>
+    (function() {
+        // View switching functionality
+        const teacherViewBtn = document.getElementById('teacherView');
+        const adminViewBtn = document.getElementById('adminView');
+        const teacherInterface = document.getElementById('teacherInterface');
+        const adminInterface = document.getElementById('adminInterface');
+        const addTeacherModal = document.getElementById('addTeacherModal');
+        
+        // @STATE: currentView:string = 'teacher'
+        let currentView = 'teacher';
+        
+        function switchView(view) {
+            currentView = view;
+            
+            if (view === 'teacher') {
+                teacherInterface.classList.remove('hidden');
+                adminInterface.classList.add('hidden');
+                teacherViewBtn.classList.add('bg-primary', 'text-primary-foreground');
+                teacherViewBtn.classList.remove('text-muted-foreground', 'hover:text-foreground');
+                adminViewBtn.classList.remove('bg-primary', 'text-primary-foreground');
+                adminViewBtn.classList.add('text-muted-foreground', 'hover:text-foreground');
+            } else {
+                teacherInterface.classList.add('hidden');
+                adminInterface.classList.remove('hidden');
+                adminViewBtn.classList.add('bg-primary', 'text-primary-foreground');
+                adminViewBtn.classList.remove('text-muted-foreground', 'hover:text-foreground');
+                teacherViewBtn.classList.remove('bg-primary', 'text-primary-foreground');
+                teacherViewBtn.classList.add('text-muted-foreground', 'hover:text-foreground');
+            }
+        }
+        
+        teacherViewBtn.addEventListener('click', () => switchView('teacher'));
+        adminViewBtn.addEventListener('click', () => switchView('admin'));
+        
+        // Modal functionality
+        function showModal(modal) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function hideModal(modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Add teacher modal handlers
+        document.querySelectorAll('[data-event*="openAddTeacherModal"]').forEach(btn => {
+            btn.addEventListener('click', () => showModal(addTeacherModal));
+        });
+        
+        document.querySelectorAll('[data-event*="closeAddTeacherModal"]').forEach(btn => {
+            btn.addEventListener('click', () => hideModal(addTeacherModal));
+        });
+        
+        // Close modal on backdrop click
+        addTeacherModal.addEventListener('click', (e) => {
+            if (e.target === addTeacherModal) {
+                hideModal(addTeacherModal);
+            }
+        });
+        
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            const timeElements = document.querySelectorAll('[data-bind="currentTime"]');
+            const dateElements = document.querySelectorAll('[data-bind="currentDate"]');
+            
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit'
+            });
+            
+            const dateString = now.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            timeElements.forEach(el => el.textContent = timeString);
+            dateElements.forEach(el => el.textContent = dateString);
+        }
+        
+        // Update time every minute
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // TODO: Implement check-in/check-out functionality
+        // TODO: Implement teacher management (add/edit/delete)
+        // TODO: Implement Google Sheets export
+        // TODO: Implement real-time status updates
+        // TODO: Implement data persistence and API integration
+        // TODO: Implement authentication and role-based access
+        
+        console.log('Sunday School Time Tracker initialized');
+    })();
+    </script>
+</body>
+</html>
